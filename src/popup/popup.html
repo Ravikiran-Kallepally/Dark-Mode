@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dusk</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <span class="logo-icon">🌙</span>
+      <span class="logo-text">Dusk</span>
+    </div>
+    <label class="switch">
+      <input type="checkbox" id="toggle" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="site-row">
+    <span class="site-icon">🌐</span>
+    <span id="site-label" class="site-label">—</span>
+    <span id="schedule-badge" class="badge" style="display:none">🌅 Auto</span>
+  </div>
+
+  <div class="controls">
+    <div class="control-row">
+      <label for="brightness">Brightness</label>
+      <input type="range" id="brightness" min="50" max="100" step="1" />
+      <span class="val" id="brightness-val">100</span>
+    </div>
+    <div class="control-row">
+      <label for="contrast">Contrast</label>
+      <input type="range" id="contrast" min="50" max="100" step="1" />
+      <span class="val" id="contrast-val">90</span>
+    </div>
+    <div class="control-row">
+      <label for="sepia">Sepia</label>
+      <input type="range" id="sepia" min="0" max="100" step="1" />
+      <span class="val" id="sepia-val">0</span>
+    </div>
+  </div>
+
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

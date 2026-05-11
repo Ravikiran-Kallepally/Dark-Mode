@@ -1,0 +1,32 @@
+{
+  "manifest_version": 3,
+  "name": "Dusk - Smart Dark Mode",
+  "version": "1.0.0",
+  "description": "Intelligent dark mode for every website. 5x lighter. Auto-schedules at sunset. Never inverts photos.",
+  "permissions": ["activeTab", "storage", "geolocation", "scripting"],
+  "host_permissions": [],
+  "optional_host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "service-worker.js",
+    "type": "module"
+  },
+  "content_scripts": [{
+    "matches": ["<all_urls>"],
+    "js": ["content/index.js"],
+    "run_at": "document_start",
+    "all_frames": false,
+    "type": "module"
+  }],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_icon": {
+      "16": "assets/icon-16.png",
+      "48": "assets/icon-48.png",
+      "128": "assets/icon-128.png"
+    }
+  },
+  "web_accessible_resources": [{
+    "resources": ["worker/analyzer.js"],
+    "matches": ["<all_urls>"]
+  }]
+}
