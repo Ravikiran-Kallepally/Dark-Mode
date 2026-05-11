@@ -34,7 +34,6 @@ export function injectThemeVars(vars: ThemeVars, s: DuskSettings): void {
     input, textarea, select {
       background-color: var(--dusk-surface) !important;
       color: var(--dusk-text) !important;
-      border-color: var(--dusk-border) !important;
     }
     a { color: var(--dusk-link) !important; }
   `;

@@ -16,7 +16,7 @@ export const DEFAULT_THEME_VARS: ThemeVars = {
   '--dusk-text':           '#E8E6F0',
   '--dusk-text-secondary': '#A8A4B8',
   '--dusk-border':         '#333333',
-  '--dusk-link':           '#A78BFA',
+  '--dusk-link':           '#60A5FA',
 };
 
 export const OBSERVER_DEBOUNCE_MS     = 150;
