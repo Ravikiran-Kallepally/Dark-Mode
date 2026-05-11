@@ -8,9 +8,16 @@ export function injectThemeVars(vars: ThemeVars, s: DuskSettings): void {
     el.id = STYLE_ID;
     document.head.insertBefore(el, document.head.firstChild);
   }
-  const b = s.brightness / 100;
-  const c = s.contrast / 100;
-  const sp = s.sepia / 100;
+  const b  = s.brightness / 100;
+  const c  = s.contrast   / 100;
+  const sp = s.sepia      / 100;
+
+  // CSS renders child filters first, then applies the parent filter to the composite.
+  // So `filter: none` on a child CANNOT undo a parent filter — the parent already
+  // darkened it. The correct neutralisation is the mathematical inverse:
+  //   parent brightness(b) × child brightness(1/b) = brightness(1) = original.
+  const invB = b > 0 ? +(1 / b).toFixed(4) : 1;
+  const invC = c > 0 ? +(1 / c).toFixed(4) : 1;
 
   el.textContent = `
     :root {
@@ -21,8 +28,8 @@ export function injectThemeVars(vars: ThemeVars, s: DuskSettings): void {
       color: var(--dusk-text) !important;
       filter: brightness(${b}) contrast(${c}) sepia(${sp});
     }
-    img[data-dusk-safe], video, canvas, svg[data-dusk-safe] {
-      filter: none !important;
+    img[data-dusk-safe], video, canvas, svg[data-dusk-safe], iframe {
+      filter: brightness(${invB}) contrast(${invC}) !important;
     }
     input, textarea, select {
       background-color: var(--dusk-surface) !important;
