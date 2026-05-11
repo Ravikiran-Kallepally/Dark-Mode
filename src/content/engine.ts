@@ -11,8 +11,14 @@ let isApplied = false;
 
 export async function initEngine(): Promise<void> {
   currentSettings = await getSettings();
-  if (currentSettings.enabled) await applyDarkMode();
-  listenForMessages();
+  if (currentSettings.enabled) {
+    if (!isApplied) {
+      await applyDarkMode();
+    } else {
+      // Already applied with defaults (early TOGGLE message) — re-inject with real settings
+      injectThemeVars(DEFAULT_THEME_VARS, currentSettings);
+    }
+  }
 }
 
 export async function applyDarkMode(): Promise<void> {
@@ -34,6 +40,11 @@ export function removeDarkMode(): void {
   isApplied = false;
 }
 
+export function updateSettings(partial: Partial<DuskSettings>): void {
+  currentSettings = { ...currentSettings, ...partial };
+  if (isApplied) injectThemeVars(DEFAULT_THEME_VARS, currentSettings);
+}
+
 async function analyzeInWorker(): Promise<ThemeVars> {
   return new Promise((resolve) => {
     const sheets: string[] = [];
@@ -44,15 +55,5 @@ async function analyzeInWorker(): Promise<ThemeVars> {
     worker.onmessage = (e) => { worker?.terminate(); worker = null; resolve(e.data.vars); };
     worker.onerror   = ()  => resolve(DEFAULT_THEME_VARS);
     setTimeout(()           => resolve(DEFAULT_THEME_VARS), 2000); // 2s safety timeout
-  });
-}
-
-function listenForMessages(): void {
-  chrome.runtime.onMessage.addListener((msg) => {
-    if (msg.type === 'TOGGLE') msg.enabled ? applyDarkMode() : removeDarkMode();
-    if (msg.type === 'UPDATE_SETTINGS') {
-      currentSettings = { ...currentSettings, ...msg.settings };
-      if (isApplied) injectThemeVars(DEFAULT_THEME_VARS, currentSettings);
-    }
   });
 }

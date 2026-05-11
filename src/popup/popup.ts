@@ -12,16 +12,26 @@ document.addEventListener('DOMContentLoaded', async () => {
   try { hostname = new URL(tab?.url ?? '').hostname; } catch { /* chrome:// or empty */ }
   document.getElementById('site-label')!.textContent = hostname;
 
+  // One debounce timer shared across all sliders — storage writes are throttled,
+  // messages to the content script are sent immediately for real-time preview.
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+
   for (const k of ['brightness', 'contrast', 'sepia'] as const) {
     const sl = document.getElementById(k) as HTMLInputElement;
     const dv = document.getElementById(k + '-val')!;
     sl.value = String(s[k]);
     dv.textContent = sl.value;
-    sl.addEventListener('input', async () => {
+    sl.addEventListener('input', () => {
       dv.textContent = sl.value;
       const u = { [k]: Number(sl.value) };
-      await saveSettings(u);
+
+      // Instant visual feedback in the active tab
       if (tabId) sendOrInject(tabId, { type: 'UPDATE_SETTINGS', settings: u });
+
+      // Debounced storage write — only commits after user stops moving for 400 ms.
+      // chrome.storage.sync allows ≤20 writes/min; rapid slider drags would blow past that.
+      if (saveTimer) clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => saveSettings(u), 400);
     });
   }
 
@@ -34,19 +44,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     s.autoSchedule ? 'inline-flex' : 'none';
 });
 
-// Try to message the content script. If it isn't loaded yet (tab predates the extension
-// install), inject it first — it will self-initialise by reading from storage.
+// Send a message to the content script. If the content script isn't loaded yet
+// (tab predates extension install), inject it first — it self-initialises from storage.
 async function sendOrInject(tabId: number, msg: object): Promise<void> {
   try {
     await chrome.tabs.sendMessage(tabId, msg);
   } catch {
     try {
       await chrome.scripting.executeScript({ target: { tabId }, files: ['content/index.js'] });
-      // Give the async IIFE a tick to register its message listener, then retry once.
-      await new Promise(r => setTimeout(r, 50));
+      // Listener is registered synchronously in content/index.ts — no delay needed.
       chrome.tabs.sendMessage(tabId, msg).catch(() => {});
     } catch {
-      // Tab is a restricted page (chrome://, PDF, etc.) — silently ignore.
+      // Restricted tab (chrome://, PDF, etc.) — silently ignore.
     }
   }
 }

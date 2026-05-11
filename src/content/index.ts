@@ -1,20 +1,26 @@
-import { initEngine } from './engine';
+import { initEngine, applyDarkMode, removeDarkMode, updateSettings } from './engine';
 import { getPreferenceForSite, savePreferenceForSite } from './site-memory';
 import { getSettings, getCachedCoords, saveCachedCoords } from '../shared/storage';
 
+// Registered SYNCHRONOUSLY — before any awaits — so the popup's sendMessage works
+// immediately after chrome.scripting.executeScript injects this script.
+chrome.runtime.onMessage.addListener((msg) => {
+  if (msg.type === 'TOGGLE') {
+    savePreferenceForSite(msg.enabled).catch(() => {});
+    if (msg.enabled) applyDarkMode(); else removeDarkMode();
+  }
+  if (msg.type === 'UPDATE_SETTINGS') {
+    updateSettings(msg.settings);
+  }
+});
+
+// Async init: determine whether dark mode should apply, then run the engine.
 (async () => {
-  const sitePref   = await getPreferenceForSite();
-  const global     = await getSettings();
+  const sitePref     = await getPreferenceForSite();
+  const global       = await getSettings();
   const shouldEnable = sitePref !== null ? sitePref : global.enabled;
   if (shouldEnable) await initEngine();
-
-  // Cache geolocation for the service worker scheduler (which has no navigator.geolocation).
-  // Only fetch if not already cached — keeps permission prompts minimal.
   if (global.autoSchedule) cacheLocationIfNeeded();
-
-  chrome.runtime.onMessage.addListener(async (msg) => {
-    if (msg.type === 'TOGGLE') await savePreferenceForSite(msg.enabled);
-  });
 })();
 
 function cacheLocationIfNeeded(): void {
