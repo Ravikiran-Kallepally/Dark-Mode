@@ -6,7 +6,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const toggle = document.getElementById('toggle') as HTMLInputElement;
   toggle.checked = s.enabled;
-  document.getElementById('site-label')!.textContent = new URL(tab.url || '').hostname;
+
+  let hostname = '—';
+  try { hostname = new URL(tab?.url ?? '').hostname; } catch { /* chrome:// or empty */ }
+  document.getElementById('site-label')!.textContent = hostname;
 
   for (const k of ['brightness', 'contrast', 'sepia'] as const) {
     const sl = document.getElementById(k) as HTMLInputElement;
@@ -17,13 +20,13 @@ document.addEventListener('DOMContentLoaded', async () => {
       dv.textContent = sl.value;
       const u = { [k]: Number(sl.value) };
       await saveSettings(u);
-      tab.id && chrome.tabs.sendMessage(tab.id, { type: 'UPDATE_SETTINGS', settings: u });
+      if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: 'UPDATE_SETTINGS', settings: u });
     });
   }
 
   toggle.addEventListener('change', async () => {
     await saveSettings({ enabled: toggle.checked });
-    tab.id && chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE', enabled: toggle.checked });
+    if (tab?.id) chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE', enabled: toggle.checked });
   });
 
   document.getElementById('schedule-badge')!.style.display =
