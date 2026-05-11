@@ -1,25 +1,35 @@
 import { initEngine, applyDarkMode, removeDarkMode, updateSettings } from './engine';
 import { getPreferenceForSite, savePreferenceForSite } from './site-memory';
 import { getSettings, getCachedCoords, saveCachedCoords } from '../shared/storage';
+import { injectQuickDark, removeQuickDark } from './injector';
 
-// Registered SYNCHRONOUSLY — before any awaits — so the popup's sendMessage works
-// immediately after chrome.scripting.executeScript injects this script.
+// ── 1. Prevent white flash ──────────────────────────────────────────────────
+// Applied synchronously before any storage reads so the page never flashes.
+injectQuickDark();
+
+// ── 2. Message listener ─────────────────────────────────────────────────────
+// Registered synchronously so sendMessage from the popup works immediately
+// after chrome.scripting.executeScript injects this script.
 chrome.runtime.onMessage.addListener((msg) => {
   if (msg.type === 'TOGGLE') {
     savePreferenceForSite(msg.enabled).catch(() => {});
     if (msg.enabled) applyDarkMode(); else removeDarkMode();
   }
-  if (msg.type === 'UPDATE_SETTINGS') {
-    updateSettings(msg.settings);
-  }
+  if (msg.type === 'UPDATE_SETTINGS') updateSettings(msg.settings);
 });
 
-// Async init: determine whether dark mode should apply, then run the engine.
+// ── 3. Async init ───────────────────────────────────────────────────────────
 (async () => {
   const sitePref     = await getPreferenceForSite();
   const global       = await getSettings();
   const shouldEnable = sitePref !== null ? sitePref : global.enabled;
-  if (shouldEnable) await initEngine();
+
+  if (shouldEnable) {
+    await initEngine();
+  } else {
+    removeQuickDark(); // user/site has dark mode off — remove the pre-applied filter
+  }
+
   if (global.autoSchedule) cacheLocationIfNeeded();
 })();
 
@@ -28,7 +38,7 @@ function cacheLocationIfNeeded(): void {
     if (existing) return;
     navigator.geolocation.getCurrentPosition(
       p => saveCachedCoords(p.coords.latitude, p.coords.longitude),
-      () => { /* denied — scheduler stays inactive */ },
+      () => {},
       { timeout: 5000, maximumAge: 3_600_000 },
     );
   });

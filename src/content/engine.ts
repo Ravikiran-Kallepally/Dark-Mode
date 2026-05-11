@@ -15,7 +15,7 @@ export async function initEngine(): Promise<void> {
     if (!isApplied) {
       await applyDarkMode();
     } else {
-      // Already applied with defaults (early TOGGLE message) — re-inject with real settings
+      // Already applied via early TOGGLE message — refresh with real settings
       injectThemeVars(DEFAULT_THEME_VARS, currentSettings);
     }
   }
@@ -23,7 +23,8 @@ export async function initEngine(): Promise<void> {
 
 export async function applyDarkMode(): Promise<void> {
   if (isApplied) return;
-  injectThemeVars(DEFAULT_THEME_VARS, currentSettings); // immediate — no white flash
+  // Quick dark already injected synchronously in index.ts — no flash.
+  // Apply real settings once the worker returns.
   const vars = await analyzeInWorker();
   injectThemeVars(vars, currentSettings);
   classifyImages().catch(console.warn);
@@ -54,6 +55,6 @@ async function analyzeInWorker(): Promise<ThemeVars> {
     worker.postMessage({ type: 'ANALYZE', stylesheets: sheets, settings: currentSettings });
     worker.onmessage = (e) => { worker?.terminate(); worker = null; resolve(e.data.vars); };
     worker.onerror   = ()  => resolve(DEFAULT_THEME_VARS);
-    setTimeout(()           => resolve(DEFAULT_THEME_VARS), 2000); // 2s safety timeout
+    setTimeout(()           => resolve(DEFAULT_THEME_VARS), 2000);
   });
 }
